@@ -24,7 +24,7 @@ from player.parser import *
 from base.whiteboard import Whiteboard
 
 '''
-quality_id - Taxa em que o video foi codificado (46980bps, ..., 4726737bps) 
+quality_id - Taxa em que o video foi codificado (46980bps, ..., 4726737bps)
 qi         - indice de qualidade normalizado
 segment_id - número de sequência do arquivo de video
 

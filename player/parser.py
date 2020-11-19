@@ -20,52 +20,52 @@ class mpd_node:
         self.title = ""
         self.segment_template = {}
         self.first_level_adp_set = {}
-            
+
     def add_mpd_info(self, data):
         self.mpd_dict = data
-    
+
     # return mpd_info dict
     def get_mpd_info(self):
         return self.mpd_dict
-    
+
     def add_period_info(self, data):
         self.period_dict = data
-        
+
     # return period_info dict
     def get_period_info(self):
         return self.period_dict
-    
+
     def add_program_info(self, data):
         self.program_info_dict = data
-    
+
     # return program_info dict
     def get_program_info(self):
         return self.program_info_dict
-    
+
     def add_adaptation_set_info(self, data):
         self.adaptation_set_list = data
-    
+
     # return adaptation set
     def get_adaptation_set_info(self):
         return self.adaptation_set_list
-    
+
     def add_title(self, data):
         self.title = data
-    
+
     # return title
     def get_title(self):
         return self.title
-    
+
     def add_segment_template(self, data):
         self.segment_template = data
-    
+
     # return segment template
     def get_segment_template(self):
         return self.segment_template
-    
+
     def add_first_level_adp_set(self, data):
         self.first_level_adp_set = data
-    
+
     # return first level adp set
     def get_first_level_adp_set(self):
         return self.first_level_adp_set
@@ -106,23 +106,23 @@ def parse_mpd(file_path):
                     node.add_segment_template(adp_set.attrib)
                 else:
                     adaptation_set.append(adp_set.attrib)
-    
+
     node.add_adaptation_set_info(adaptation_set)
-        
+
     return node
 
-# return the specific attribute value. 
+# return the specific attribute value.
 # if representation_id is passed, returns the correspondent dict.
 def navigate_mpd(mpd_node, attribute = None, representation_id = None):
     handle_dict = {}
     handle_list = []
-    
+
     if representation_id:
         handle_list = mpd_node.get_adaptation_set_info()
         for i, item in enumerate(handle_list):
             if item['id'] == representation_id:
                 return item
-            
+
     else:
         handle_dict = mpd_node.get_mpd_info()
         for key in handle_dict:

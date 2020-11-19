@@ -1,2 +1,13 @@
+# Virtual environments
 /venv/
+.pydash
+
+# Directory created by text editors
+.vscode
+
+# Automatically created cache files
+__pycache__
+*pyc
+
+# Execution stats
 /results/
