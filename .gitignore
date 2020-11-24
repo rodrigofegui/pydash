@@ -1,6 +1,5 @@
 # Virtual environments
 /venv/
-<<<<<<< HEAD
 .pydash
 
 # Directory created by text editors
@@ -9,17 +8,12 @@
 # Automatically created cache files
 __pycache__
 *pyc
+*.py[cod]
+*$py.class
 
 # Execution stats
 /results/
-=======
 *.png
 r2a/r2afdash.py
 .DS_Store
 .idea/
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
->>>>>>> e8385d5d2e31dd86b6b5962b31455db2dba1c95d
