@@ -1,9 +1,9 @@
 from collections import Counter
 
-from r2a.r2ablockedthroughput import R2ABlockedTroughput
+from r2a.r2ablockedthroughput import R2ABlockedThroughput
 
 
-class R2ASemiBlockedThroughput(R2ABlockedTroughput):
+class R2ASemiBlockedThroughput(R2ABlockedThroughput):
     def _set_next_qi_id(self):
         if len(self.throughput_buffer) < self.throughput_buffer_size:
             return

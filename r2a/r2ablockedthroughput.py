@@ -1,13 +1,13 @@
 from collections import Counter
 from re import search
-from time import process_time
+from time import perf_counter
 
 from base.configuration_parser import ConfigurationParser
 from player.parser import parse_mpd
 from r2a.ir2a import IR2A
 
 
-class R2ABlockedTroughput(IR2A):
+class R2ABlockedThroughput(IR2A):
     def __init__(self, id):
         super().__init__(id)
 
@@ -26,7 +26,6 @@ class R2ABlockedTroughput(IR2A):
         self.elapsed_time = None
         self.throughput_buffer_size = 0
         self.throughput_buffer = []
-        self.cnt = 0
 
     def handle_xml_request(self, msg):
         self.send_down(msg)
@@ -40,13 +39,12 @@ class R2ABlockedTroughput(IR2A):
     def handle_segment_size_request(self, msg):
         msg.add_quality_id(self.qi[self.qi_id])
 
-        self.elapsed_time = process_time()
+        self.elapsed_time = perf_counter()
 
         self.send_down(msg)
 
     def handle_segment_size_response(self, msg):
-        self.cnt += 1
-        self.elapsed_time = process_time() - self.elapsed_time
+        self.elapsed_time = perf_counter() - self.elapsed_time
         # print('-' * 20)
         # print('elapsed_time', self.elapsed_time)
         # print('-' * 20)
