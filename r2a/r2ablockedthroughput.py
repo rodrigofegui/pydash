@@ -1,21 +1,21 @@
+from collections import Counter
 from re import search
 from time import process_time
 
 from base.configuration_parser import ConfigurationParser
 from player.parser import parse_mpd
 from r2a.ir2a import IR2A
-from collections import Counter
 
 
-class R2ABandwidth(IR2A):
+class R2ABlockedTroughput(IR2A):
     def __init__(self, id):
         super().__init__(id)
 
-        self.MIN_EVAL_BUFFER_SZ = 1
-        self.MAX_EVAL_BUFFER_SZ = 5
+        self.MIN_throughput_buffer_SZ = 1
+        self.MAX_throughput_buffer_SZ = 5
 
         self.STABILITY_PERC = .2
-        self.INITIAL_QI_ID = .65
+        self.INITIAL_QI_ID = .5
 
         self.DECREASE_BPS = -1
         self.KEEP_BPS = 0
@@ -24,8 +24,8 @@ class R2ABandwidth(IR2A):
         self.qi = []
         self.qi_id = None
         self.elapsed_time = None
-        self.eval_buffer_size = 0
-        self.eval_buffer = []
+        self.throughput_buffer_size = 0
+        self.throughput_buffer = []
         self.cnt = 0
 
     def handle_xml_request(self, msg):
@@ -47,6 +47,9 @@ class R2ABandwidth(IR2A):
     def handle_segment_size_response(self, msg):
         self.cnt += 1
         self.elapsed_time = process_time() - self.elapsed_time
+        # print('-' * 20)
+        # print('elapsed_time', self.elapsed_time)
+        # print('-' * 20)
 
         self._performance_analyses(msg.bit_length)
 
@@ -58,56 +61,58 @@ class R2ABandwidth(IR2A):
         settings = ConfigurationParser.get_instance()
         period = int(search(r'(\d+)sec', settings.get_parameter('url_mpd')).groups()[0])
 
-        self.eval_buffer_size = max(self.MIN_EVAL_BUFFER_SZ, self.MAX_EVAL_BUFFER_SZ // period)
-
+        self.throughput_buffer_size = max(self.MIN_throughput_buffer_SZ, self.MAX_throughput_buffer_SZ // period)
 
     def finalization(self):
-        print('finalizando!...')
+        pass
 
     def _performance_analyses(self, bit_length):
-        print()
-        network_performance = bit_length // self.elapsed_time
-        network_performance = bit_length // 1
-        print('network_performance', network_performance)
+        # print()
+        c_throughput = bit_length // self.elapsed_time
+        # print('c_throughput', c_throughput)
         # print('elapsed_time', 1 / self.elapsed_time)
-        network_performance = round(network_performance / self.qi[self.qi_id], 3)
-        print('c_bandwidth', self.qi[self.qi_id])
-        print('network_performance', network_performance)
+        c_throughput = round(c_throughput / self.qi[self.qi_id], 3)
+        # print('c_bandwidth', self.qi[self.qi_id])
+        # print('c_throughput', c_throughput)
 
-        if network_performance < 1 - self.STABILITY_PERC:
-            print('diminuindo')
-            self.eval_buffer.append(self.DECREASE_BPS)
-        elif network_performance > 1 + self.STABILITY_PERC:
-            print('aumentando')
-            self.eval_buffer.append(self.INCREASE_BPS)
+        if c_throughput < 1 - self.STABILITY_PERC:
+            # print('diminuindo')
+            self.throughput_buffer.append(self.DECREASE_BPS)
+        elif c_throughput > 1 + self.STABILITY_PERC:
+            # print('aumentando')
+            self.throughput_buffer.append(self.INCREASE_BPS)
         else:
-            self.eval_buffer.append(self.KEEP_BPS)
-            print('mantendo')
+            self.throughput_buffer.append(self.KEEP_BPS)
+            # print('mantendo')
 
-        print()
+        # print()
 
     def _set_next_qi_id(self):
-        if len(self.eval_buffer) < self.eval_buffer_size:
+        if len(self.throughput_buffer) < self.throughput_buffer_size:
             return
 
+        # print()
+        # print('throughput_buffer', self.throughput_buffer)
 
-        print()
-        print('eval_buffer', self.eval_buffer)
-        direction = Counter(self.eval_buffer).most_common()
+        direction = Counter(self.throughput_buffer).most_common()
 
+        # if self.whiteboard.get_amount_video_to_play() <=  self.throughput_buffer_size:
+        #     direction = self.DECREASE_BPS
+        # el
         if len(direction) == 1:
             direction = direction[0][0]
         elif abs(direction[0][0] - direction[1][0]) > 1:
             direction = self.KEEP_BPS
         else:
-            if direction[0][1] >= len(self.eval_buffer) // 2:
+            if direction[0][1] >= len(self.throughput_buffer) // 2:
                 direction = direction[0][0]
             else:
                 direction = self.KEEP_BPS
 
-        self.eval_buffer.clear()
+        self.throughput_buffer.clear()
 
-        print('DIRECTION', direction)
+        # print('DIRECTION', direction)
+        # print()
         # print('whiteboard', self.whiteboard, self.whiteboard.__dict__)
         # input()
         # print(0/0)
