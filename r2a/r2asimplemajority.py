@@ -52,9 +52,6 @@ class R2ASimpleMajority(IR2A):
 
     def handle_segment_size_response(self, msg):
         self.elapsed_time = perf_counter() - self.elapsed_time
-        # print('-' * 20)
-        # print('elapsed_time', self.elapsed_time)
-        # print('-' * 20)
 
         self._performance_analyses(msg.bit_length)
 
@@ -69,10 +66,9 @@ class R2ASimpleMajority(IR2A):
         self.throughput_buffer_size = max(self.MIN_throughput_buffer_SZ, self.MAX_throughput_buffer_SZ // period)
 
     def finalization(self):
-        self.log_time = datetime.now().isoformat()
         self._plot(
             [(self.throughputs, 'real')],
-            'throughput',
+            'throughput_v2',
             'Throughput',
             'throught',
         )
@@ -80,31 +76,21 @@ class R2ASimpleMajority(IR2A):
             [(self.comp_throughputs, 'comparativo')],
             'comp_throughput',
             'Comparação Throughput',
-            'throught',
+            'throughput_v2',
         )
 
     def _performance_analyses(self, bit_length):
-        # print()
         c_throughput = bit_length // self.elapsed_time
-        # print('c_throughput', c_throughput)
         self.throughputs.append(c_throughput)
         c_throughput = round(c_throughput / self.qi[self.qi_id], 3)
         self.comp_throughputs.append(c_throughput)
-        # print('c_bandwidth', self.qi[self.qi_id])
-        # print('c_throughput', c_throughput)
 
         if c_throughput < 1 - self.STABILITY_DOWN:
-            # print('diminuindo')
             self.throughput_buffer.append(self.DECREASE_BPS)
         elif c_throughput > 1 + self.STABILITY_UP:
-            # print('aumentando')
             self.throughput_buffer.append(self.INCREASE_BPS)
         else:
             self.throughput_buffer.append(self.KEEP_BPS)
-            # print('mantendo')
-
-        # print()
-        # input('ENTER')
 
     def _set_next_qi_id(self):
         if len(self.throughput_buffer) < self.throughput_buffer_size:
@@ -138,7 +124,7 @@ class R2ASimpleMajority(IR2A):
 
         pyplot.legend()
         pyplot.title(title)
-        pyplot.savefig(f'./results/{file_name}_{self.log_time}.png')
+        pyplot.savefig(f'./results/{self.__class__.__name__}_{file_name}.png')
         pyplot.clf()
         pyplot.cla()
         pyplot.close()

@@ -1,9 +1,9 @@
+from datetime import datetime
 from math import exp
 from time import perf_counter
 
-from numpy import abs, asarray
-from datetime import datetime
 from matplotlib import pyplot
+from numpy import abs, asarray
 
 from player.parser import parse_mpd
 from r2a.ir2a import IR2A
@@ -18,7 +18,7 @@ class R2ATruong(IR2A):
     def __init__(self, id):
         super().__init__(id)
 
-        self.INITIAL_QI_ID = .5
+        self.INITIAL_QI_ID = .65
 
         self.LOGISTIC_GROWTH_RATE = 21
         self.LOGISTIC_MIDPOINT = .2
@@ -60,9 +60,9 @@ class R2ATruong(IR2A):
     def handle_segment_size_response(self, msg):
         self.elapsed_time = perf_counter() - self.elapsed_time
 
-        self._estimate_throughput(msg.bit_length)
+        self._controller(msg.bit_length)
 
-        self._select_bandwidth()
+        self._throughput_estimation()
 
         self.send_up(msg)
 
@@ -75,50 +75,35 @@ class R2ATruong(IR2A):
             [(self.throughputs, 'real'), (self.estimated_throughputs, 'estimado')],
             'comparacao_throughput',
             'Comparação Throughput',
-            'throught',
+            'throught_v3',
         )
 
     def _feature_extraction(self):
-        # print('-' * 20)
         if not self.throughputs:
-            # print('sem Throughput')
             return
 
         self.normalizer = abs(self.throughputs[-1]  - self.estimated_throughputs[-1]) / self.estimated_throughputs[-1]
 
         self.smoother = 1 / (1 + exp(-(self.LOGISTIC_GROWTH_RATE * (self.normalizer - self.LOGISTIC_MIDPOINT))))
-        # print('normalizer', self.normalizer)
-        # print('smoother', self.smoother)
-        # print('-' * 20)
 
-    def _estimate_throughput(self, bit_length):
-        # print('-' * 20)
-        # print('bit_len', bit_length)
-        # print('elapsed_time', self.elapsed_time)
+    def _controller(self, bit_length):
         self.throughputs.append(bit_length // self.elapsed_time)
 
         throughput_buffer_sz = len(self.throughputs)
 
-        if throughput_buffer_sz <= 3:
+        if throughput_buffer_sz == 1:
             self.estimated_throughputs.append(self.throughputs[-1])
+        elif throughput_buffer_sz <= 3:
+            self.estimated_throughputs.append(self.throughputs[-2])
         else:
             self.estimated_throughputs.append(
-                ((1 - self.smoother) * self.estimated_throughputs[-2]) + (self.smoother * self.throughputs[-1])
+                ((1 - self.smoother) * self.estimated_throughputs[-2]) + (self.smoother * self.throughputs[-2])
             )
 
-        # print('new thr:', self.throughputs[-1])
-        # print('new est_thr:', self.estimated_throughputs[-1])
-        # print('-' * 20)
-
-    def _select_bandwidth(self):
+    def _throughput_estimation(self):
         bitrate = (1 - self.SAFETY_MARGIN) * self.estimated_throughputs[-1]
 
         self.qi_id = self._nth_closest(bitrate)
-        # print('-' * 20)
-        # print('bitrate', bitrate)
-        # print('qi', self.qi_id)
-        # print('-' * 20)
-        # input()
 
     def _nth_closest(self, bitrate):
         return abs(asarray(self.qi) - bitrate).argmin()
