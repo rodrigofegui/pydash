@@ -3,7 +3,19 @@ from r2a.r2asimplemajority import R2ASimpleMajority
 
 
 class R2ADemocraticAndBufferSize(R2ASimpleMajority):
+    """ABR algorithm based on throughput comparison votes by weightable democratic votes and playback buffer size"""
     def _directions_analyses(self, distribution):
+        """Getting the best direction as follow:
+
+        - If playback buffer is lower than current throughput buffer: There is an emergency
+        - Otherwise: Inherited behavior from R2ADemocratic
+
+        Args:
+        - `list:distribution`: Comparison throughput vote distribution
+
+        Return:
+        - Suggested direction
+        """
         if self.whiteboard.get_amount_video_to_play() <= self.throughput_buffer_size:
             direction = self.DECREASE_BPS
         elif len(distribution) == 1:
@@ -18,6 +30,7 @@ class R2ADemocraticAndBufferSize(R2ASimpleMajority):
         return direction
 
     def _set_next_qi_id(self):
+        """Selecting the next quality bitrate, only when at least half buffer is fulfill."""
         history = Counter(self.throughput_buffer).most_common()
 
         if len(self.throughput_buffer) < self.throughput_buffer_size // 2:

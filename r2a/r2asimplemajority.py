@@ -1,5 +1,4 @@
 from collections import Counter
-from datetime import datetime
 from re import search
 from time import perf_counter
 
@@ -11,26 +10,38 @@ from r2a.ir2a import IR2A
 
 
 class R2ASimpleMajority(IR2A):
+    """ABR algorithm based on throughput comparison votes by simple majority."""
     def __init__(self, id):
         super().__init__(id)
 
-        self.MIN_throughput_buffer_SZ = 1
-        self.MAX_throughput_buffer_SZ = 5
+        # Throuhput buffer size bounderies
+        self.MIN_THROUGHPUT_BUFFER_SZ = 1
+        self.MAX_THROUGHPUT_BUFFER_SZ = 5
 
-        self.STABILITY_UP = .7
-        self.STABILITY_DOWN = 0
+        # Throughput start point
         self.INITIAL_QI_ID = .5
 
+        # Stability margin controls
+        self.STABILITY_UP = .7
+        self.STABILITY_DOWN = 0
+
+        # Available directions
         self.DECREASE_BPS = -1
         self.KEEP_BPS = 0
         self.INCREASE_BPS = 1
 
+        # Throughput qualities store
         self.qi = []
         self.qi_id = None
+
+        # Intermediate to calculate the current throughput
         self.elapsed_time = None
+
+        # Throughput buffer control
         self.throughput_buffer_size = 0
         self.throughput_buffer = []
 
+        # History
         self.throughputs = []
         self.comp_throughputs = []
 
@@ -60,12 +71,14 @@ class R2ASimpleMajority(IR2A):
         self.send_up(msg)
 
     def initialize(self):
+        """Calculating the buffer size, based on segment periods"""
         settings = ConfigurationParser.get_instance()
         period = int(search(r'(\d+)sec', settings.get_parameter('url_mpd')).groups()[0])
 
-        self.throughput_buffer_size = max(self.MIN_throughput_buffer_SZ, self.MAX_throughput_buffer_SZ // period)
+        self.throughput_buffer_size = max(self.MIN_THROUGHPUT_BUFFER_SZ, self.MAX_THROUGHPUT_BUFFER_SZ // period)
 
     def finalization(self):
+        """History plots"""
         self._plot(
             [(self.throughputs, 'real')],
             'throughput_v2',
@@ -80,6 +93,16 @@ class R2ASimpleMajority(IR2A):
         )
 
     def _performance_analyses(self, bit_length):
+        """Calculating the current throughput and checking its proportion
+        to the current quality bitrate as follow:
+
+        - If proportion is lower than `STABILITY_DOWN`: `DECREASE_BPS`
+        - If proportion is higher than `STABILITY_UP`: `INCREASE_BPS`
+        - Otherwise: `KEEP_BPS`
+
+        Args:
+        - `int:bit_lenght`: Response lenght in bits
+        """
         c_throughput = bit_length // self.elapsed_time
         self.throughputs.append(c_throughput)
         c_throughput = round(c_throughput / self.qi[self.qi_id], 3)
@@ -93,6 +116,7 @@ class R2ASimpleMajority(IR2A):
             self.throughput_buffer.append(self.KEEP_BPS)
 
     def _set_next_qi_id(self):
+        """Selecting the next quality bitrate, only when the buffer is full."""
         if len(self.throughput_buffer) < self.throughput_buffer_size:
             return
 
@@ -108,9 +132,18 @@ class R2ASimpleMajority(IR2A):
             self.qi_id += direction
 
     def _directions_analyses(self, distribution):
+        """Getting the most common vote.
+
+        Args:
+        - `list:distribution`: Comparison throughput vote distribution
+
+        Return:
+        - Suggested direction
+        """
         return distribution[0][0]
 
     def _plot(self, data, file_name, title, y_label, x_label='histórico'):
+        """Plotting data into a .PNG image."""
         for axis, label in data:
             x_axis, y_axis = [], []
 
